@@ -4,6 +4,8 @@
 
 #include <functional>
 #include <vector>
+#include <string>
+#include <limits>
 
 // 1. Special functions
 // 1.1 Simple functions
