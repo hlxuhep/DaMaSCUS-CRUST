@@ -400,7 +400,7 @@ void Read_Config_File(const char* inputfile, int rank)
 		try
 		{
 			DMe_target = cfg.lookup("target").c_str();
-			if(DMe_target != "Si" && DMe_target != "Ge")
+			if(DMe_target != "HgTe" && DMe_target != "CdTe")
 			{
 				std::cerr << "Error in cfg file. Semiconductor target " << DMe_target << " not recognized." << endl;
 				std::exit(EXIT_FAILURE);
