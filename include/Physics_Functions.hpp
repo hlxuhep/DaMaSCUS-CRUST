@@ -11,7 +11,7 @@ using namespace std;
 // Energy
 extern const double GeV, eV, keV, MeV, TeV, erg, Joule;
 // Mass
-extern const double gram, kg;
+extern const double gram, kg, AMU;
 // Length
 extern const double a0, cm, meter, km, fm, pb, parsec, kpc, Mpc;
 // Time

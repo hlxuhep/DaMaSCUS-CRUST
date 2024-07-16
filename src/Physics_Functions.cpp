@@ -17,8 +17,9 @@ const double TeV   = 1.0E3 * GeV;
 const double erg   = gram * pow(cm / sec, 2);
 const double Joule = kg * pow(meter / sec, 2);
 // Mass
-const double gram = 5.617977528089887E23 * GeV;
-const double kg	  = 1e3 * gram;
+const double gram  = 5.617977528089887E23 * GeV;
+const double kg	   = 1e3 * gram;
+const double AMU   = 0.9314940954 * GeV;
 // Length
 const double cm		= 5.068e13 / GeV;
 const double meter	= 100 * cm;

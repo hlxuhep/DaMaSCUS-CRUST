@@ -11,8 +11,8 @@
 
 // 1. Import crystal/ionization form factor
 // Crystal form factor
-double FFcrystalSi[900][500];
-double FFcrystalGe[900][500];
+double FFcrystalHgTe[800][300];
+double FFcrystalCdTe[800][300];
 
 // Ionization form factors for different atomic shells
 std::vector<Shell> Shells;
@@ -21,49 +21,33 @@ std::vector<Shell> Shells;
 void Import_FormFactor(const std::string& target)
 {
 	// a) Semiconductor
-	if(target == "Si" || target == "Ge")
+	if(target == "HgTe")
 	{
-		// Prefactors:
-		double dE		 = 0.1 * eV;
-		double wk		 = 2.0 / 137.0;
-		double prefactor = (target == "Si") ? 2.0 * eV : 1.8 * eV;
-
 		// Import data:
 		ifstream f;
 		f.open("../detectors/Semiconductors/C." + target + "137.dat");
-		for(int Ei = 1; Ei <= 500; Ei++)
+		for(int Ei = 1; Ei <= 300; Ei++)
 		{
-			for(int qi = 1; qi <= 900; qi++)
+			for(int qi = 1; qi <= 800; qi++)
 			{
-				if(target == "Si")
-				{
-					f >> FFcrystalSi[qi - 1][Ei - 1];
-					FFcrystalSi[qi - 1][Ei - 1] *= prefactor * qi / dE * wk / 4.0;
-				}
-				else
-				{
-					f >> FFcrystalGe[qi - 1][Ei - 1];
-					FFcrystalGe[qi - 1][Ei - 1] *= prefactor * qi / dE * wk / 4.0;
-				}
+				f >> FFcrystalHgTe[qi - 1][Ei - 1];
 			}
 		}
 		f.close();
 	}
-	// b) Xenon
-	else if(target == "Xe")
+	else if(target == "CdTe")
 	{
-		Shells.push_back(Shell("5p", "../detectors/FF_Xenon/FF_5p.txt", 12.4 * eV, 0, -2.4, 2.4, 97, -1, 4, 101));
-		Shells.push_back(Shell("5s", "../detectors/FF_Xenon/FF_5s.txt", 25.7 * eV, 0, -2.4, 1.8, 43, -1, 4, 51));
-		Shells.push_back(Shell("4d", "../detectors/FF_Xenon/FF_4d.txt", 75.6 * eV, 4, -2.4, 1.75, 84, -1, 4, 101));
-		Shells.push_back(Shell("4p", "../detectors/FF_Xenon/FF_4p.txt", 163.5 * eV, 6, -2.4, 1.65, 36, -1, 4, 101));
-		Shells.push_back(Shell("4s", "../detectors/FF_Xenon/FF_4s.txt", 213.8 * eV, 3, -2.4, 1.8, 43, -1, 4, 51));
-	}
-	// c) Argon
-	else if(target == "Ar")
-	{
-		Shells.push_back(Shell("3p32", "../detectors/FF_Argon/FF_3p32.txt", 15.7 * eV, 0, -2.4, 1.8, 14, -1, 4, 51));
-		Shells.push_back(Shell("3p12", "../detectors/FF_Argon/FF_3p12.txt", 15.9 * eV, 0, -2.4, 1.8, 14, -1, 4, 51));
-		Shells.push_back(Shell("3s", "../detectors/FF_Argon/FF_3s.txt", 29.3 * eV, 0, -2.4, 1.8, 43, -1, 4, 51));
+		// Import data:
+		ifstream f;
+		f.open("../detectors/Semiconductors/C." + target + "137.dat");
+		for(int Ei = 1; Ei <= 300; Ei++)
+		{
+			for(int qi = 1; qi <= 800; qi++)
+			{
+				f >> FFcrystalCdTe[qi - 1][Ei - 1];
+			}
+		}
+		f.close();
 	}
 	// d) Error
 	else
@@ -83,56 +67,42 @@ double vMinimal_e(double q, double Ee, double mDM)
 // Recoil spectra
 double dRdEe(double Ee, const DM_Particle& DM, const std::string& target, double efficiency)
 {
-	double dE = 0.1 * eV;
-	double dq = 0.02 * aEM * mElectron;
+	double dE  =  0.05 * eV;
+	double dq  =  0.01 * aEM * mElectron;
 
 	// Target specific parameters:
-	double Mcell;
-	if(target == "Si")
-		Mcell = 2.0 * 28.08 * mNucleon;
-	else if(target == "Ge")
-		Mcell = 2.0 * 72.6 * mNucleon;
-	else
-	{
-		std::cerr << "Error in dRdEe(): target " << target << " not recognized." << endl;
-		std::exit(EXIT_FAILURE);
-	}
-	double(&FFcrystal)[900][500] = (target == "Si") ? FFcrystalSi : FFcrystalGe;
+	double Mcell	   = 301.74 * AMU;
+
+	double(&FFcrystal)[800][300] = (target == "HgTe") ? FFcrystalHgTe : FFcrystalCdTe;
 
 	double prefactor = efficiency * rhoDM / DM.mass / Mcell * DM.sigma_e * aEM * pow(mElectron / Reduced_Mass(DM.mass, mElectron), 2.0);
 
 	// Integrate by summing over the tabulated form factors
 	int Ei	   = floor(Ee / dE) - 1;
 	double sum = 0.0;
-	for(int qi = 0; qi < 900; qi++)
+	for(int qi = 0; qi < 800; qi++)
 		sum += 1.0 / (qi + 1) / (qi + 1) / dq * EtaFunction(vMinimal_e((qi + 1) * dq, Ee, DM.mass), vEarth) * pow(DM.FormFactor((qi + 1) * dq), 2.0) * FFcrystal[qi][Ei];
 
 	return prefactor * sum;
 }
 Interpolation dRdEe(const DM_Particle& DM, const std::string& target, double efficiency, const std::vector<double>& attenuation, const std::vector<DataPoint>& speeddata, double vCutoff)
 {
-	double dE = 0.1 * eV;
-	double dq = 0.02 * aEM * mElectron;
+	double dE  =  0.05 * eV;
+	double dq  =  0.01 * aEM * mElectron;
 	// Target specific parameters
 	double Mcell, Egap, eps;
-	if(target == "Si")
+	if(target == "HgTe" || target == "CdTe")
 	{
-		Mcell = 2.0 * 28.08 * mNucleon;
-		Egap  = 1.11 * eV;
-		eps	  = 3.6 * eV;
-	}
-	else if(target == "Ge")
-	{
-		Mcell = 2.0 * 72.6 * mNucleon;
-		Egap  = 0.67 * eV;
-		eps	  = 2.9 * eV;
+		Mcell = 301.74 * AMU;
+		Egap  = 0.234 * eV;
+		eps	  = 3 * Egap;
 	}
 	else
 	{
 		std::cerr << "Error in dRdEe(): Target " << target << " not recognized." << endl;
 		std::exit(EXIT_FAILURE);
 	}
-	double(&FFcrystal)[900][500] = (target == "Si") ? FFcrystalSi : FFcrystalGe;
+	double(&FFcrystal)[800][300] = (target == "HgTe") ? FFcrystalHgTe : FFcrystalCdTe;
 
 	// MC eta function
 	Interpolation etaMC = EtaFunction(attenuation, speeddata, vCutoff, vEarth);
@@ -140,13 +110,13 @@ Interpolation dRdEe(const DM_Particle& DM, const std::string& target, double eff
 	double prefactor = efficiency * rhoDM / DM.mass / Mcell * DM.sigma_e * aEM * pow(mElectron / Reduced_Mass(DM.mass, mElectron), 2.0);
 
 	// Interpolation
-	int points = 500;
+	int points = 300;
 	std::vector<std::vector<double>> interpol_list;
 	double Ethr = eps * (DMe_threshold - 1) + Egap;
 	for(int Ei = Ethr / dE; Ei < points; Ei++)
 	{
 		double sum = 0.0;
-		for(int qi = 0; qi < 900; qi++)
+		for(int qi = 0; qi < 800; qi++)
 		{
 			sum += 1.0 / (qi + 1) / (qi + 1) / dq * etaMC(vMinimal_e((qi + 1) * dq, (Ei + 1) * dE, DM.mass)) * pow(DM.FormFactor((qi + 1) * dq), 2.0) * FFcrystal[qi][Ei];
 		}
@@ -160,22 +130,16 @@ Interpolation dRdEe(const DM_Particle& DM, const std::string& target, double eff
 // Total event rates
 double TotalRate(const DM_Particle& DM, int Qthreshold, double efficiency, const std::string& target)
 {
-	double dE = 0.1 * eV;
-	double dq = 0.02 * aEM * mElectron;
+	double dE  =  0.05 * eV;
+	double dq  =  0.01 * aEM * mElectron;
 
 	// Target specific parameters
 	double Mcell, Egap, eps;
-	if(target == "Si")
+	if(target == "HgTe" || target == "CdTe")
 	{
-		Mcell = 2.0 * 28.08 * mNucleon;
-		Egap  = 1.11 * eV;
-		eps	  = 3.6 * eV;
-	}
-	else if(target == "Ge")
-	{
-		Mcell = 2.0 * 72.6 * mNucleon;
-		Egap  = 0.67 * eV;
-		eps	  = 2.9 * eV;
+		Mcell = 301.74 * AMU;
+		Egap  = 0.234 * eV;
+		eps	  = 3 * Egap;
 	}
 	else
 	{
@@ -183,14 +147,14 @@ double TotalRate(const DM_Particle& DM, int Qthreshold, double efficiency, const
 		std::exit(EXIT_FAILURE);
 	}
 	double Ethr					 = eps * (Qthreshold - 1) + Egap;
-	double(&FFcrystal)[900][500] = (target == "Si") ? FFcrystalSi : FFcrystalGe;
+	double(&FFcrystal)[800][300] = (target == "HgTe") ? FFcrystalHgTe : FFcrystalCdTe;
 
 	// Integrating over the form factors by summing the tabulated values.
 	double prefactor = efficiency * rhoDM / DM.mass / Mcell * DM.sigma_e * aEM * pow(mElectron / Reduced_Mass(DM.mass, mElectron), 2.0);
 	double sum		 = 0.0;
-	for(int Ei = (Ethr / dE); Ei < 500; Ei++)
+	for(int Ei = (Ethr / dE); Ei < 300; Ei++)
 	{
-		for(int qi = 0; qi < 900; qi++)
+		for(int qi = 0; qi < 800; qi++)
 			sum += dE / (qi + 1) / (qi + 1) / dq * EtaFunction(vMinimal_e((qi + 1) * dq, (Ei + 1) * dE, DM.mass), vEarth) * pow(DM.FormFactor((qi + 1) * dq), 2.0) * FFcrystal[qi][Ei];
 	}
 
@@ -198,21 +162,15 @@ double TotalRate(const DM_Particle& DM, int Qthreshold, double efficiency, const
 }
 double TotalRate(const DM_Particle& DM, int Qthreshold, double efficiency, const std::string& target, const std::vector<double>& attenuation, const std::vector<DataPoint>& speeddata, double vCutoff)
 {
-	double dE = 0.1 * eV;
-	double dq = 0.02 * aEM * mElectron;
+	double dE  =  0.05 * eV;
+	double dq  =  0.01 * aEM * mElectron;
 	// Target specific parameters
 	double Mcell, Egap, eps;
-	if(target == "Si")
+	if(target == "HgTe" || target == "CdTe")
 	{
-		Mcell = 2.0 * 28.08 * mNucleon;
-		Egap  = 1.11 * eV;
-		eps	  = 3.6 * eV;
-	}
-	else if(target == "Ge")
-	{
-		Mcell = 2.0 * 72.6 * mNucleon;
-		Egap  = 0.67 * eV;
-		eps	  = 2.9 * eV;
+		Mcell = 301.74 * AMU;
+		Egap  = 0.234 * eV;
+		eps	  = 3 * Egap;
 	}
 	else
 	{
@@ -224,7 +182,7 @@ double TotalRate(const DM_Particle& DM, int Qthreshold, double efficiency, const
 	double Ethr = eps * (Qthreshold - 1) + Egap;
 
 	// Crystal form factor
-	double(&FFcrystal)[900][500] = (target == "Si") ? FFcrystalSi : FFcrystalGe;
+	double(&FFcrystal)[800][300] = (target == "HgTe") ? FFcrystalHgTe : FFcrystalCdTe;
 
 	// MC eta function
 	Interpolation etaMC = EtaFunction(attenuation, speeddata, vCutoff, vEarth);
@@ -232,9 +190,9 @@ double TotalRate(const DM_Particle& DM, int Qthreshold, double efficiency, const
 	// Integrating over the form factors by summing the tabulated values.
 	double prefactor = efficiency * rhoDM / DM.mass / Mcell * DM.sigma_e * aEM * pow(mElectron / Reduced_Mass(DM.mass, mElectron), 2.0);
 	double sum		 = 0.0;
-	for(int Ei = (Ethr / dE); Ei < 500; Ei++)
+	for(int Ei = (Ethr / dE); Ei < 300; Ei++)
 	{
-		for(int qi = 0; qi < 900; qi++)
+		for(int qi = 0; qi < 800; qi++)
 			sum += dE / (qi + 1) / (qi + 1) / dq * etaMC(vMinimal_e((qi + 1) * dq, (Ei + 1) * dE, DM.mass)) * pow(DM.FormFactor((qi + 1) * dq), 2.0) * FFcrystal[qi][Ei];
 	}
 
