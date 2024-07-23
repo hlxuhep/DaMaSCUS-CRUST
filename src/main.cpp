@@ -87,7 +87,7 @@ int main(int argc, char* argv[])
 		// Pre-simulation output.
 		if(myRank == 0)
 		{
-			cout << "\nCompute the DM speed distribution for\n\tsigma_n = " << Round(InUnits(sigma_pdf, cm * cm)) << "cm^2" << endl
+			cout << "\nCompute the DM speed distribution for\n\tsigma_e = " << Round(InUnits(sigma_pdf, cm * cm)) << "cm^2" << endl
 				 << "\tmDM = " << ((DM.mass < GeV) ? Round(DM.mass / MeV) : Round(DM.mass)) << (((DM.mass < GeV) ? " MeV" : " GeV")) << endl
 				 << "\tvMin = " << vMin_pdf / km * sec << " km/sec" << endl;
 			if(GIS)
