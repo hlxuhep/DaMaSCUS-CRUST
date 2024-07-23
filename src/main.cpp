@@ -75,7 +75,7 @@ int main(int argc, char* argv[])
 		if(argc == 6)
 			SampleSize = atof(argv[5]);
 		DM.Set_Mass(mDM_pdf);
-		DM.Set_Sigma_n(sigma_pdf);
+		DM.Set_Sigma_e(sigma_pdf);  // modified. Setting DM-e cross section here.
 		double Analytic_vMean = Average_Speed(vEarth, vMin_pdf);
 		Compute_All_MFP(DM, vMin_pdf);
 		int GIS_Domains = 1;
