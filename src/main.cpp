@@ -64,18 +64,27 @@ int main(int argc, char* argv[])
 	// OPTION 1: Only compute the underground speed distribution for a given mass, cross section, and speed cutoff:
 	if(argc > 2)
 	{
-		if(argc == 3 || argc > 6)
+		if(argc < 5 || argc > 7)
 		{
-			cerr << "Error in main(): For PDF-only run, DaMaSCUS-CRUST requires between 2 and 4 additional command line arguments: mDM[GeV], sigma[cm^2] (optional: vMin[km/sec], SampleSize)." << endl;
+			cerr << "Error in main(): For PDF-only run, DaMaSCUS-CRUST requires between 3 and 5 additional command line arguments: mDM[GeV], sigma[cm^2], cross_section_type[e|n] (optional: vMin[km/sec], SampleSize)." << endl;
 			std::exit(EXIT_FAILURE);
 		}
 		double mDM_pdf	 = atof(argv[2]) * GeV;
 		double sigma_pdf = atof(argv[3]) * cm * cm;
-		double vMin_pdf	 = (argc >= 5) ? atof(argv[4]) * km / sec : 0;
-		if(argc == 6)
-			SampleSize = atof(argv[5]);
+		string cross_section_type = argv[4];
+		double vMin_pdf	 = (argc >= 6) ? atof(argv[5]) * km / sec : 0;
+		if(argc == 7)
+			SampleSize = atof(argv[6]);
 		DM.Set_Mass(mDM_pdf);
-		DM.Set_Sigma_e(sigma_pdf);  // modified. Setting DM-e cross section here.
+		if(cross_section_type == "e")
+			DM.Set_Sigma_e(sigma_pdf);
+		else if(cross_section_type == "n")
+			DM.Set_Sigma_n(sigma_pdf);
+		else
+		{
+			cerr << "Error in main(): Cross-section type must be \"e\" or \"n\", got \"" << cross_section_type << "\"." << endl;
+			std::exit(EXIT_FAILURE);
+		}
 		double Analytic_vMean = Average_Speed(vEarth, vMin_pdf);
 		Compute_All_MFP(DM, vMin_pdf);
 		int GIS_Domains = 1;
@@ -87,7 +96,7 @@ int main(int argc, char* argv[])
 		// Pre-simulation output.
 		if(myRank == 0)
 		{
-			cout << "\nCompute the DM speed distribution for\n\tsigma_e = " << Round(InUnits(sigma_pdf, cm * cm)) << "cm^2" << endl
+			cout << "\nCompute the DM speed distribution for\n\tsigma_" << cross_section_type << " = " << Round(InUnits(sigma_pdf, cm * cm)) << "cm^2" << endl
 				 << "\tmDM = " << ((DM.mass < GeV) ? Round(DM.mass / MeV) : Round(DM.mass)) << (((DM.mass < GeV) ? " MeV" : " GeV")) << endl
 				 << "\tvMin = " << vMin_pdf / km * sec << " km/sec" << endl;
 			if(GIS)
